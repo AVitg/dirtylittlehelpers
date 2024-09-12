@@ -47,7 +47,9 @@ def download_stream_id_to_file(yt: YouTube, stream_id :str) -> bool:
     filename = stream.default_filename.split(sep=".")[0]
     filename = renice_filename(filename)
     
-    
+    path=os.getcwd()
+    filename=os.path.join(path,"downloads",filename)
+  
     
     if stream_id in ("401","247"):    
         filename_w_ext = filename + ".mp4"
@@ -86,13 +88,13 @@ def combine_av(yt: YouTube, streams):
         video_filename = filename + ".mp4"
         
         path=os.getcwd()
-        audio_file=os.path.join(path,audio_filename)
-        video_file=os.path.join(path,video_filename)
+        audio_file=os.path.join(path,"downloads",audio_filename)
+        video_file=os.path.join(path,"downloads",video_filename)
         
         input_audio = ffmpeg.input(audio_file)
         input_video = ffmpeg.input(video_file)
         output_filename = filename +"_with_audio.mp4"
-        output_file=os.path.join(path,output_filename)
+        output_file=os.path.join(path,"downloads",output_filename)
         check_file = os.path.isfile(output_file)
         ffmpegbin=os.path.join(path,"ffmpeg.exe")
         print(f"xxx {ffmpegbin}")        
@@ -111,11 +113,13 @@ def combine_av(yt: YouTube, streams):
         else:
             print("file exists")
 
-def handle_playlist(playListURI : str):
+def handle_video_playlist(playListURI : str):
     pl=Playlist(playListURI)
     ic(pl)
-    for vid in pl:
-        get_single_yt(vid,playlist=True)    
+    for vid in pl:        
+        #get_single_yt(vid,playlist=True)           
+        list_streams(vid) 
+        get_single_yt(vid,HQ_VIDEO=True)   # as "copy" is faster as concat ;)
         
         
 def get_single_yt(URI :str,playlist=False , HQ_VIDEO=False):
@@ -194,23 +198,29 @@ def get_single_yt(URI :str,playlist=False , HQ_VIDEO=False):
 
 def list_streams(URI: str):
     yt = YouTube(URI)
-    
+    print("in list streams")
     ic(URI)
-    ic(YouTube)
+    ic(yt)
     
     streams=yt.streams
+    ic(streams)
     for stream in streams:
         ic(stream)    
 
 if __name__ == "__main__":
-
-    URI = "https://www.youtube.com/watch?v=3UInUV_OQhk"
+    
+    URI=''
+    #URI = "https://www.youtube.com/watch?v=3UInUV_OQhk"
+    
     
     playlist=''
+    playlist='https://www.youtube.com/watch?v=B0J27sf9N1Y&list=PLjEaoINr3zgEPv5y--4MKpciLaoQYZB1Z'
     
+
     if URI:
         list_streams(URI)
         get_single_yt(URI)
         get_single_yt(URI,HQ_VIDEO=True)
     if playlist:
-        handle_playlist(playlist)
+        handle_video_playlist(playlist)
+        #todo handle music playlist...
