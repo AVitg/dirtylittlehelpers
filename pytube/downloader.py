@@ -108,7 +108,7 @@ def combine_av(yt: YouTube, streams):
             # concat=ffmpeg.concat(input_video, input_audio, v=1, a=1).output(output_filename).run(cmd=ffmpegbin)
             
             #this just combines - ultrafast ;) ,yikes
-            ffmpeg.output(input_video, input_audio, output_filename, codec='copy').run(cmd=ffmpegbin)
+            ffmpeg.output(input_video, input_audio, output_file, codec='copy').run(cmd=ffmpegbin)
             
         else:
             print("file exists")
