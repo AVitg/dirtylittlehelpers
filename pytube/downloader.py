@@ -47,21 +47,18 @@ def download_stream_id_to_file(yt: YouTube, stream_id :str) -> bool:
     filename = stream.default_filename.split(sep=".")[0]
     filename = renice_filename(filename)
     
-    filename_w_ext = filename + id_dict.get(stream_id, ".unknown")
-    print(filename_w_ext)
     
-    print("Download in progress: ", end="", flush=True)
+    
+    if stream_id in ("401","247"):    
+        filename_w_ext = filename + ".mp4"
+    else:
+        filename_w_ext = filename + id_dict.get(stream_id, ".unknown")    
+    
+    print(f"Downloading  {filename_w_ext} in progress: ", end="", flush=True)
     try:
         stream.download(filename=filename_w_ext)
     except urle.HTTPError:
         return(2)
-        
-    VIDEO=False
-    if VIDEO:
-        filename_w_ext = filename + ".mp4"
-        video_stream = yt.streams.filter(progressive=False, only_video=True)
-        ic(video_stream)
-        # video_stream.download(filename=filename_w_ext)
 
     return True
 
@@ -82,9 +79,9 @@ def combine_av(yt: YouTube, streams):
     filename = stream.default_filename.split(sep=".")[0]
     filename = renice_filename(filename)
     ic(filename)
-    audioStreamToUse="251" #(opus)
-    #audioStreamToUse="140" #(m4a) 
-    if "251" in streams:
+    #audioStreamToUse="251" #(opus)
+    audioStreamToUse="140" #(m4a) 
+    if "140" in streams:
         audio_filename = filename + id_dict.get(audioStreamToUse, ".unknown")
         video_filename = filename + ".mp4"
         
@@ -97,19 +94,20 @@ def combine_av(yt: YouTube, streams):
         output_filename = filename +"_with_audio.mp4"
         output_file=os.path.join(path,output_filename)
         check_file = os.path.isfile(output_file)
-        ffmpegbin=os.path.join(path,"ffmpeg-6.1.1-essentials_build","bin","ffmpeg.exe")
+        ffmpegbin=os.path.join(path,"ffmpeg.exe")
+        print(f"xxx {ffmpegbin}")        
         ic(input_audio)
         ic(input_video)
         ic(output_file)
+        
+
         if not check_file:
-            concat=ffmpeg.concat(input_video, input_audio, v=1, a=1).output(output_filename).run(cmd=ffmpegbin)
-            # #ffmpeg.concat(input_video, input_audio, v=1, a=1).output(output_filename).run()
-            # concatff=ffmpeg.concat(input_video, input_audio, v=1, a=1)
-            # ic(concatff)
-            # of=concatff.output(output_file)
-            # ic(of)
-            # retval=of.run()
-            # ic(retval)
+            #the re.encodes the whoke shebang and takes ages: 
+            # concat=ffmpeg.concat(input_video, input_audio, v=1, a=1).output(output_filename).run(cmd=ffmpegbin)
+            
+            #this just combines - ultrafast ;) ,yikes
+            ffmpeg.output(input_video, input_audio, output_filename, codec='copy').run(cmd=ffmpegbin)
+            
         else:
             print("file exists")
 
@@ -117,10 +115,10 @@ def handle_playlist(playListURI : str):
     pl=Playlist(playListURI)
     ic(pl)
     for vid in pl:
-        get_single_yt(vid,True)    
+        get_single_yt(vid,playlist=True)    
         
         
-def get_single_yt(URI :str, LQ_VIDEO=False):
+def get_single_yt(URI :str,playlist=False , HQ_VIDEO=False):
     yt = YouTube(URI)
     try:
         title = yt.title
@@ -162,19 +160,25 @@ def get_single_yt(URI :str, LQ_VIDEO=False):
         #st=yt.streams.filter(progressive=True)
         #print(st)
         #exit()
-        
-        HQ_VIDEO = False
-        
-        LQ_AUDIO_VIDEO = False
-        VIDEO_720p= False
-        
-        streams = ['140', '251']  
-        if LQ_AUDIO_VIDEO:
-            streams.append("22")
-        if VIDEO_720p:
-            streams.append("247")
-        if HQ_VIDEO:
-            streams.append("401")
+
+        if not playlist:
+            streams = ['140', '251']  
+            available_streams=yt.streams
+            if HQ_VIDEO:
+                if available_streams.get_by_itag("401"):
+                    streams.append("401")
+                else:
+                    if available_streams.get_by_itag("247"):
+                        streams.append("247")
+                    else:
+                        streams.append("22")
+        else:
+            if available_streams.get_by_itag("22"):
+                streams = ["22",]
+            else: 
+                print("Error no 720p stream found to download playlist")
+                exit(1)
+            
         for stream_id in streams:            
             retval= download_stream_id_to_file(yt, stream_id)
             while retval == 2:
@@ -182,8 +186,8 @@ def get_single_yt(URI :str, LQ_VIDEO=False):
                 retval= download_stream_id_to_file(yt, stream_id)
                 yt.streams.filter(progressive=True)
         
-        #if HQ_VIDEO:
-        #    combine_av(yt,streams)
+        if HQ_VIDEO:
+            combine_av(yt,streams)
 
     except yte.VideoUnavailable:
         print(f"Unable to find {URI}")
@@ -200,12 +204,13 @@ def list_streams(URI: str):
 
 if __name__ == "__main__":
 
-    URI = ""
+    URI = "https://www.youtube.com/watch?v=3UInUV_OQhk"
     
     playlist=''
     
     if URI:
         list_streams(URI)
         get_single_yt(URI)
+        get_single_yt(URI,HQ_VIDEO=True)
     if playlist:
         handle_playlist(playlist)
